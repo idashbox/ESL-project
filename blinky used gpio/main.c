@@ -9,6 +9,7 @@
 #define LED_2_G_PIN NRF_GPIO_PIN_MAP(1, 9)
 #define LED_2_B_PIN NRF_GPIO_PIN_MAP(0, 12)
 
+uint32_t led_pins[] = {LED_1_PIN, LED_2_R_PIN, LED_2_G_PIN, LED_2_B_PIN};
 
 void led_on(uint32_t pin_number)
 {
@@ -41,23 +42,7 @@ void initialize_gpio()
 
 void handle_button_press(uint8_t *current_led, bool *led_on_flag, uint8_t *blinks, size_t blinks_size)
 {
-    if (*current_led == 0)
-    {
-        led_toggle(LED_1_PIN);
-    }
-    else if (*current_led == 1)
-    {
-        led_off(LED_1_PIN);
-        led_toggle(LED_2_R_PIN);
-    }
-    else if (*current_led == 2)
-    {
-        led_toggle(LED_2_G_PIN);
-    }
-    else
-    {
-        led_toggle(LED_2_B_PIN);
-    }
+    led_toggle(led_pins[*current_led]);
     *led_on_flag = !*led_on_flag;
     nrf_delay_ms(500);
 
@@ -66,39 +51,25 @@ void handle_button_press(uint8_t *current_led, bool *led_on_flag, uint8_t *blink
         blinks[*current_led]--;
         if (blinks[*current_led] == 0)
         {
+            led_off(led_pins[*current_led]);
             *current_led = (*current_led + 1) % blinks_size;
             blinks[*current_led] = (*current_led == 0) ? 6 : (*current_led == 1) ? 5 : (*current_led == 2) ? 8 : 1;
-
-            if (*current_led == 0)
-            {
-                led_off(LED_1_PIN);
-            }
-            else if (*current_led == 1)
-            {
-                led_off(LED_2_R_PIN);
-            }
-            else if (*current_led == 2)
-            {
-                led_off(LED_2_G_PIN);
-            }
-            else
-            {
-                led_off(LED_2_B_PIN);
-            }
+            led_on(led_pins[*current_led]);
         }
     }
 }
 
 void turn_off_all_leds()
 {
-    led_off(LED_1_PIN);
-    led_off(LED_2_R_PIN);
-    led_off(LED_2_G_PIN);
-    led_off(LED_2_B_PIN);
+    for (size_t i = 0; i < sizeof(led_pins) / sizeof(led_pins[0]); i++)
+    {
+        led_off(led_pins[i]);
+    }
 }
 
 int main(void)
 {
+    turn_off_all_leds();
     initialize_gpio();
 
     uint8_t blinks[] = {6, 5, 8, 1};
