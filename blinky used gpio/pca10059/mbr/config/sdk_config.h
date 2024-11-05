@@ -42,6 +42,28 @@
 
 #ifndef SDK_CONFIG_H
 #define SDK_CONFIG_H
+
+#define APP_TIMER_V2 1
+#define APP_TIMER_V2_RTC1_ENABLED 1
+#define APP_TIMER_ENABLED 1
+#define NRFX_SYSTICK_ENABLED 1
+
+// Уровень приоритета прерываний для RTC
+#define APP_TIMER_CONFIG_IRQ_PRIORITY 6
+
+// Размер очереди операций
+#define APP_TIMER_CONFIG_OP_QUEUE_SIZE 4
+
+// Частота RTC
+#define APP_TIMER_CONFIG_RTC_FREQUENCY 1024
+
+// Номер SWI для таймера
+#define APP_TIMER_CONFIG_SWI_NUMBER 0
+
+#define NRF_GPIO_ENABLED 1
+
+#define NRF_LOG_BACKEND_USB_ENABLED 1
+
 // <<< Use Configuration Wizard in Context Menu >>>\n
 #ifdef USE_APP_CONFIG
 #include "app_config.h"
@@ -54,6 +76,7 @@
 #ifndef NRF_BALLOC_ENABLED
 #define NRF_BALLOC_ENABLED 1
 #endif
+
 // <e> NRF_BALLOC_CONFIG_DEBUG_ENABLED - Enables debug mode in the module.
 //==========================================================
 #ifndef NRF_BALLOC_CONFIG_DEBUG_ENABLED
@@ -155,7 +178,7 @@
 // <e> NRF_LOG_ENABLED - nrf_log - Logger
 //==========================================================
 #ifndef NRF_LOG_ENABLED
-#define NRF_LOG_ENABLED 0
+#define NRF_LOG_ENABLED 1
 #endif
 // <h> Log message pool - Configuration of log message pool
 

@@ -15,9 +15,12 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
+  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
+  $(SDK_ROOT)/components/libraries/sortlist/nrf_sortlist.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
   $(SDK_ROOT)/components/boards/boards.c \
   $(SDK_ROOT)/components/libraries/util/app_error.c \
+  $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
   $(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
@@ -30,6 +33,8 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
   $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
   $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
+  $(SDK_ROOT)/components/libraries/timer/app_timer.c \
+  $(SDK_ROOT)/components/libraries/usbd/app_usbd.c \
   $(PROJ_DIR)/main.c \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
 
@@ -37,23 +42,30 @@ SRC_FILES += \
 INC_FOLDERS += \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/modules/nrfx/mdk \
+  $(SDK_ROOT)/modules/nrfx/drivers/include \
   $(PROJ_DIR) \
   $(SDK_ROOT)/components/softdevice/mbr/headers \
   $(SDK_ROOT)/components/libraries/strerror \
+  $(SDK_ROOT)/components/libraries/scheduler \
+  $(SDK_ROOT)/components/libraries/timer \
   $(SDK_ROOT)/components/toolchain/cmsis/include \
   $(SDK_ROOT)/components/libraries/util \
   ../config \
   $(SDK_ROOT)/components/libraries/balloc \
+  $(SDK_ROOT)/components/libraries/sortlist \
   $(SDK_ROOT)/components/libraries/ringbuf \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/components/libraries/bsp \
   $(SDK_ROOT)/components/libraries/log \
+  $(SDK_ROOT)/components/libraries/usbd \
   $(SDK_ROOT)/modules/nrfx \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/components/libraries/delay \
   $(SDK_ROOT)/integration/nrfx \
+  $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd \
   $(SDK_ROOT)/components/libraries/atomic \
+  $(SDK_ROOT)/components/libraries/log \
   $(SDK_ROOT)/components/boards \
   $(SDK_ROOT)/components/libraries/memobj \
   $(SDK_ROOT)/external/fprintf \
