@@ -3,6 +3,7 @@
 #include "pwm_handler.h"
 #include "nrf_log.h"
 #include "nrf_gpio.h"
+#include <string.h>
 
 extern uint32_t leds[];
 
@@ -98,6 +99,7 @@ void modify_duty_cycle_for_LED1()
     else{
         step = steps_for_mode.for_display_mode;
     }
+
     pwm_set_duty_cycle(0, duty_cycle);
     duty_cycle += step;
 
@@ -107,72 +109,59 @@ void modify_duty_cycle_for_LED1()
     }
 }
 
-
-void modify_hue(void)
+void modify_hsv()
 {
+    uint32_t parameter;
+    uint32_t step_modify;
+    uint32_t max_parameters_value;
     static bool increasing = true;
+    char name_of_parameter[20];
 
-    if (increasing) {
-        hue += STEP_HUE_MODIFY;
-        if (hue >= 360) {
-            hue = 360;
-            increasing = false;
-        }
-    } else {
-        hue -= STEP_HUE_MODIFY;
-        if (hue <= 0) {
-            hue = 0;
-            increasing = true;
-        }
+    if (current_mode == MODE_HUE_MODIFY){
+        parameter = hue;
+        step_modify = STEP_HUE_MODIFY;
+        max_parameters_value = 360;
+        strcpy(name_of_parameter, "Hue");
     }
-    display_selected_color();
-
-    NRF_LOG_INFO("Hue is %d, Duty Cycle is %d", hue, hue);
-}
-
-void modify_saturation(void)
-{
-    static bool increasing = true;
-
-    if (increasing) {
-        saturation += STEP_SAT_MODIFY;
-        if (saturation >= 100) {
-            saturation = 100;
-            increasing = false;
-        }
-    } else {
-        saturation -= STEP_SAT_MODIFY;
-        if (saturation <= 0) {
-            saturation = 0;
-            increasing = true;
-        }
+    else if (current_mode == MODE_SAT_MODIFY){
+        parameter = saturation;
+        step_modify = STEP_SAT_MODIFY;
+        max_parameters_value = 100;
+        strcpy(name_of_parameter, "Saturation");
     }
-    display_selected_color();
-
-    NRF_LOG_INFO("Saturation is %d, Duty Cycle is %d", saturation, saturation * 5);
-}
-
-void modify_brightness(void)
-{
-    static bool increasing = true;
+    else{
+        parameter = brightness;
+        step_modify = STEP_BRIGHT_MODIFY;
+        max_parameters_value = 100;
+        strcpy(name_of_parameter, "Bright");
+    }
 
     if (increasing) {
-        brightness += STEP_BRIGHT_MODIFY;
-        if (brightness >= 100) {
-            brightness = 100;
+        parameter += step_modify;
+        if (parameter >= max_parameters_value) {
+            parameter = max_parameters_value;
             increasing = false;
         }
     } else {
-        brightness -= STEP_BRIGHT_MODIFY;
-        if (brightness <= 0) {
-            brightness = 0;
+        parameter -= step_modify;
+        if (parameter <= 0) {
+            parameter = 0;
             increasing = true;
         }
     }
 
+    if (current_mode == MODE_HUE_MODIFY){
+        hue = parameter;
+    }
+    else if (current_mode == MODE_SAT_MODIFY){
+        saturation = parameter;
+    }
+    else{
+        brightness= parameter;
+    }
     display_selected_color();
 
-    NRF_LOG_INFO("Brightness is %d", brightness);
+    NRF_LOG_INFO("%S is %d", name_of_parameter, parameter);
 }
 
 void process_led_events()
@@ -218,24 +207,7 @@ void process_led_events()
 
     if (is_button_clamped())
     {
-        switch (current_mode)
-        {
-            case MODE_HUE_MODIFY:
-                modify_hue();
-                NRF_LOG_INFO("Hue modified to %d", hue);
-                break;
-            case MODE_SAT_MODIFY:
-                modify_saturation();
-                NRF_LOG_INFO("Saturation modified to %d", saturation);
-                break;
-            case MODE_BRIGHT_MODIFY:
-                modify_brightness();
-                NRF_LOG_INFO("Brightness modified to %d", brightness);
-                break;
-            default:
-                display_selected_color();
-                break;
-        }
+        modify_hsv();
     }
     else{
         click_counter = 0;

@@ -8,7 +8,7 @@ typedef struct {
     app_timer_id_t timer;
     bool is_working;
     uint32_t timeout_ticks;
-} itq_timer_t;
+} it_timer_t;
 
 uint32_t click_counter;
 bool is_button_double_cliecked_g;

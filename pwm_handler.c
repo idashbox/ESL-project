@@ -39,7 +39,7 @@ void pwm_start(void)
 
 void pwm_set_duty_cycle(uint8_t channel, uint32_t duty_cycle)
 {
-    duty_cycle %= 1 + PWM_TOP_VALUE;
+    duty_cycle %= PWM_TOP_VALUE + 1;
 
     switch (channel)
     {

@@ -10,8 +10,8 @@ static bool first_click_passed = false;
 APP_TIMER_DEF(debounce_timer_id);
 APP_TIMER_DEF(double_click_timer_id);
 
-static itq_timer_t debounce_timer;
-static itq_timer_t double_click_timer;
+static it_timer_t debounce_timer;
+static it_timer_t double_click_timer;
 
 uint32_t click_counter = 0;
 
@@ -30,37 +30,46 @@ bool is_button_clamped(void)
     return is_button_once_pressed() && click_counter >= 2;
 }
 
-static void start_timer(itq_timer_t* timer, void* context)
+static void start_timer(it_timer_t* timer, void* context)
 {
     timer->is_working = true;
     app_timer_start(timer->timer, timer->timeout_ticks, context);
 }
 
-static void stop_timer(itq_timer_t* timer)
+static void stop_timer(it_timer_t* timer)
 {
     timer->is_working = false;
     app_timer_stop(timer->timer);
 }
 
+static void handle_first_click(void)
+{
+    click_counter = 1;
+    NRF_LOG_INFO("Click is 1");
+    start_timer(&debounce_timer, &first_click_passed);
+    start_timer(&double_click_timer, NULL);
+}
+
+static void handle_second_click(void)
+{
+    start_timer(&debounce_timer, &is_button_double_cliecked_g);
+}
+
+
 static void interrupt_handler(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
-    NRF_LOG_INFO("interrupt_handler triggered");
+    NRF_LOG_INFO("Interrupt_handler triggered");
 
     if (debounce_timer.is_working)
         stop_timer(&debounce_timer);
 
     if (first_click_passed)
-        start_timer(&debounce_timer, &is_button_double_cliecked_g);
+        handle_second_click();
     else
-    {
-        click_counter = 1;
-        NRF_LOG_INFO("Click is 1");
-        start_timer(&debounce_timer, &first_click_passed);
-        start_timer(&double_click_timer, NULL);
-    }
+        handle_first_click();
 }
 
-static void init_timer(itq_timer_t* timer, app_timer_timeout_handler_t handler, app_timer_id_t timer_id, uint32_t timeout_ms)
+static void init_timer(it_timer_t* timer, app_timer_timeout_handler_t handler, app_timer_id_t timer_id, uint32_t timeout_ms)
 {
     timer->timer = timer_id;
     app_timer_create(&timer->timer, APP_TIMER_MODE_SINGLE_SHOT, handler);
