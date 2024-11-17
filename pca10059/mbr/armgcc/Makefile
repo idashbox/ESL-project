@@ -5,7 +5,7 @@ DFU_PACKAGE      := $(OUTPUT_DIRECTORY)/nrf52840_xxaa.dfu
 DFU_PORT         ?= /dev/ttyACM0
 
 
-SDK_ROOT = $(SDK_ROOT)
+SDK_ROOT ?= /home/user/esl-nsdk/
 PROJ_DIR := ../../..
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
@@ -14,7 +14,6 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 # Source files common to all targets
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
-  $(SDK_ROOT)/components/boards/boards.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_power.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
@@ -61,8 +60,8 @@ SRC_FILES += \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
   $(SDK_ROOT)/external/utf_converter/utf.c \
-  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_systick.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_pwm.c \
   $(PROJ_DIR)/pwm_handler.c \
   $(PROJ_DIR)/button_handler.c \
   $(PROJ_DIR)/led_controller.c \
@@ -73,7 +72,6 @@ INC_FOLDERS += \
   $(PROJ_DIR) \
   $(PROJ_DIR)/pca10059/mbr/config \
   $(SDK_ROOT)/components/libraries/fifo \
-  $(SDK_ROOT)/components/libraries/pwm \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/components/libraries/log \
@@ -98,7 +96,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/components/libraries/delay \
   $(SDK_ROOT)/components/libraries/memobj \
-  $(SDK_ROOT)/components/libraries/low_power_pwm \
   $(SDK_ROOT)/external/fprintf \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/external/nrf_cc310/include \
@@ -141,7 +138,7 @@ CFLAGS += -DUSE_APP_CONFIG
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBOARD_PCA10059
-# CFLAGS += -DBSP_DEFINES_ONLY
+CFLAGS += -DNRFX_PWM_ENABLED=1
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DMBR_PRESENT
