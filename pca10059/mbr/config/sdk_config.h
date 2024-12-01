@@ -80,6 +80,10 @@
 #define NRF_STACK_GUARD_CONFIG_SIZE 7
 #endif
 
+#define NRF_NVMC_ENABLED 1
+#define BOOTLOADER_START_ADDR 0x7E000
+#define NRF_DFU_APP_DATA_AREA_SIZE 0x1000
+
 // </e>
 
 // </h> 

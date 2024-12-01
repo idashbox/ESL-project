@@ -13,6 +13,7 @@
 #include "button_handler.h"
 #include "pwm_handler.h"
 #include "nrfx_pwm.h"
+#include "flash_storage.h"
 
 #define LEDS_NUMBER 4
 
@@ -48,6 +49,10 @@ void periph_init(void)
 int main(void)
 {
     periph_init();
+
+    load_saved_color(&hue, &saturation, &brightness);
+    update_parameters(hue, saturation, brightness);
+
     pwm_start();
 
     while (true)

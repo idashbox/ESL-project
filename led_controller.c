@@ -3,21 +3,22 @@
 #include "pwm_handler.h"
 #include "nrf_log.h"
 #include "nrf_gpio.h"
+#include "flash_storage.h"
 #include <string.h>
 
 extern uint32_t leds[];
 
-static uint32_t hue = (int) 360 * 0.81;
-static uint32_t saturation = 100;
-static uint32_t brightness = 100;
+uint32_t hue = (int) 360 * 0.81;
+uint32_t saturation = 100;
+uint32_t brightness = 100;
 
 static uint32_t duty_cycle = 0;
 
 controller_mode_t current_mode = MODE_DISPLAY_COLOR;
 steps_for_mode_t steps_for_mode = {
-    .for_hue_mode = 1,
-    .for_sat_mode = 10,
-    .for_display_mode = 0
+    .hue_mode_step = 1,
+    .sat_mode_step = 10,
+    .display_mode_step = 0
 };
 
 void turn_off_led(uint8_t pin_number)
@@ -28,6 +29,12 @@ void turn_off_led(uint8_t pin_number)
 void turn_on_led(uint8_t pin_number)
 {
     nrf_gpio_pin_write(leds[pin_number], LED_TURN_ON);
+}
+
+void update_parameters(uint32_t h, uint32_t s, uint32_t v){
+    hue = h;
+    saturation = s;
+    brightness = v;
 }
 
 void hsv_to_rgb(uint32_t h, uint32_t s, uint32_t v, uint8_t *r, uint8_t *g, uint8_t *b) {
@@ -87,17 +94,17 @@ void modify_duty_cycle_for_LED1()
 {
     uint8_t step;
     if (current_mode == MODE_HUE_MODIFY){
-        step = steps_for_mode.for_hue_mode;
+        step = steps_for_mode.hue_mode_step;
     }
     else if (current_mode == MODE_SAT_MODIFY){
-        step = steps_for_mode.for_sat_mode;
+        step = steps_for_mode.sat_mode_step;
     }
-    else if (current_mode == MODE_BRIGHT_MODIFY){
-        pwm_set_duty_cycle(0, 100);
-        return;
+    else if (current_mode == MODE_DISPLAY_COLOR){
+        step = steps_for_mode.display_mode_step;
     }
     else{
-        step = steps_for_mode.for_display_mode;
+        pwm_set_duty_cycle(0, 100);
+        return;
     }
 
     pwm_set_duty_cycle(0, duty_cycle);
@@ -111,9 +118,9 @@ void modify_duty_cycle_for_LED1()
 
 void modify_hsv()
 {
-    uint32_t parameter;
+    uint32_t parameter = 0;
     uint32_t step_modify;
-    uint32_t max_parameters_value;
+    uint32_t max_parameters_value = 0;
     static bool increasing = true;
     char name_of_parameter[20];
 
@@ -129,7 +136,7 @@ void modify_hsv()
         max_parameters_value = 100;
         strcpy(name_of_parameter, "Saturation");
     }
-    else{
+    else if (current_mode == MODE_BRIGHT_MODIFY){
         parameter = brightness;
         step_modify = STEP_BRIGHT_MODIFY;
         max_parameters_value = 100;
@@ -156,7 +163,7 @@ void modify_hsv()
     else if (current_mode == MODE_SAT_MODIFY){
         saturation = parameter;
     }
-    else{
+    else if (current_mode == MODE_BRIGHT_MODIFY){
         brightness= parameter;
     }
     display_selected_color();
@@ -190,19 +197,15 @@ void process_led_events()
             current_mode = MODE_DISPLAY_COLOR;
             duty_cycle = 0;
             display_selected_color();
+            save_color(hue, saturation, brightness);
             NRF_LOG_INFO("Mode changed to MODE_DISPLAY_COLOR");
         }
         else if (current_mode == MODE_DISPLAY_COLOR)
         {
             duty_cycle = 0;
-            hue = (int) 360 * 0.81;
-            saturation = 100;
-            brightness = 100;
             current_mode = MODE_HUE_MODIFY;
             NRF_LOG_INFO("Mode changed to MODE_HUE_MODIFY");
         }
-
-        is_button_double_cliecked_g = false;
     }
 
     if (is_button_clamped())
@@ -210,6 +213,6 @@ void process_led_events()
         modify_hsv();
     }
     else{
-        click_counter = 0;
+        zeroing_click_counter();
     }
 }

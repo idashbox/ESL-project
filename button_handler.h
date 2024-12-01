@@ -10,11 +10,10 @@ typedef struct {
     uint32_t timeout_ticks;
 } it_timer_t;
 
-uint32_t click_counter;
-bool is_button_double_cliecked_g;
 
 bool is_button_double_cliecked(void);
 bool is_button_clamped(void);
+void zeroing_click_counter();
 void initialize_button_handler(void);
 
 #endif

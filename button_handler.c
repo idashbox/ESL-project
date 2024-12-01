@@ -4,7 +4,7 @@
 
 extern uint32_t BUTTON_PIN;
 
-bool is_button_double_cliecked_g = false;
+bool is_button_double_cliecked = false;
 static bool first_click_passed = false;
 
 APP_TIMER_DEF(debounce_timer_id);
@@ -22,7 +22,15 @@ bool is_button_once_pressed(void)
 
 bool is_button_double_cliecked(void)
 {
-    return is_button_double_cliecked_g;
+    bool flag_for_button_double_cliecked = is_button_double_cliecked;
+    if (is_button_double_cliecked){
+        is_button_double_cliecked = !is_button_double_cliecked;
+    }
+    return flag_for_button_double_cliecked;
+}
+
+void zeroing_click_counter(){
+    click_counter = 0;
 }
 
 bool is_button_clamped(void)
@@ -52,7 +60,7 @@ static void handle_first_click(void)
 
 static void handle_second_click(void)
 {
-    start_timer(&debounce_timer, &is_button_double_cliecked_g);
+    start_timer(&debounce_timer, &is_button_double_cliecked);
 }
 
 
@@ -79,19 +87,19 @@ static void init_timer(it_timer_t* timer, app_timer_timeout_handler_t handler, a
 
 static void debounce_handler(void* context)
 {
-    NRF_LOG_INFO("Debounce_handler enter, is_button_double_cliecked_g: %d.", is_button_double_cliecked_g);
+    NRF_LOG_INFO("Debounce_handler enter, is_button_double_cliecked: %d.", is_button_double_cliecked);
 
     bool* context_bool = (bool*) context;
 
     if (!is_button_once_pressed())
         *context_bool = !*context_bool;
-    if (context == &is_button_double_cliecked_g && !is_button_once_pressed())
+    if (context == &is_button_double_cliecked && !is_button_once_pressed())
     {
         first_click_passed = false;
         stop_timer(&double_click_timer);
     }
 
-    NRF_LOG_INFO("Debounce_handler out, is_button_double_cliecked_g: %d.", is_button_double_cliecked_g);
+    NRF_LOG_INFO("Debounce_handler out, is_button_double_cliecked: %d.", is_button_double_cliecked);
 
     debounce_timer.is_working = false;
 }
