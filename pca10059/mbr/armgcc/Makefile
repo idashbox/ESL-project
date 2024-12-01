@@ -62,6 +62,8 @@ SRC_FILES += \
   $(SDK_ROOT)/external/utf_converter/utf.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_pwm.c \
+  $(SDK_ROOT)/modules/nrfx/hal/nrf_nvmc.c \
+  $(PROJ_DIR)/flash_storage.c \
   $(PROJ_DIR)/pwm_handler.c \
   $(PROJ_DIR)/button_handler.c \
   $(PROJ_DIR)/led_controller.c \
