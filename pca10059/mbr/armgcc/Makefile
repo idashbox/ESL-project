@@ -67,6 +67,7 @@ SRC_FILES += \
   $(PROJ_DIR)/pwm_handler.c \
   $(PROJ_DIR)/button_handler.c \
   $(PROJ_DIR)/led_controller.c \
+  $(PROJ_DIR)/cli.c \
   $(PROJ_DIR)/main.c \
 
 # Include folders common to all targets
@@ -137,6 +138,7 @@ OPT = -O3 -g3
 # C flags common to all targets
 CFLAGS += $(OPT)
 CFLAGS += -DUSE_APP_CONFIG
+CFLAGS += -DESTC_USB_CLI_ENABLED=$(ESTC_USB_CLI_ENABLED)
 CFLAGS += -DAPP_TIMER_V2
 CFLAGS += -DAPP_TIMER_V2_RTC1_ENABLED
 CFLAGS += -DBOARD_PCA10059

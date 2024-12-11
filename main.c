@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include "nordic_common.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -12,8 +13,8 @@
 #include "led_controller.h"
 #include "button_handler.h"
 #include "pwm_handler.h"
-#include "nrfx_pwm.h"
 #include "flash_storage.h"
+#include "cli.h"
 
 #define LEDS_NUMBER 4
 
@@ -55,14 +56,27 @@ int main(void)
 
     pwm_start();
 
+#if ESTC_USB_CLI_ENABLED
+    cli_init();
+#endif
+
     while (true)
     {
-        process_led_events();
+
+#if ESTC_USB_CLI_ENABLED
+        while (app_usbd_event_queue_process())
+        {
+            // Обработка USB событий
+        }
+#endif
+        if (!ESTC_USB_CLI_ENABLED){
+            process_led_events();
+        }
 
         LOG_BACKEND_USB_PROCESS();
         NRF_LOG_PROCESS();
 
-        nrf_delay_ms(20); 
+        nrf_delay_ms(20);
     }
 
     return 0;
