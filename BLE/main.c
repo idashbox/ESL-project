@@ -1,53 +1,3 @@
-/**
- * Copyright (c) 2014 - 2021, Nordic Semiconductor ASA
- *
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form, except as embedded into a Nordic
- *    Semiconductor ASA integrated circuit in a product or a software update for
- *    such product, must reproduce the above copyright notice, this list of
- *    conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
- *
- * 3. Neither the name of Nordic Semiconductor ASA nor the names of its
- *    contributors may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- * 4. This software, with or without modification, must only be used with a
- *    Nordic Semiconductor ASA integrated circuit.
- *
- * 5. Any software provided in binary form under this license must not be reverse
- *    engineered, decompiled, modified and/or disassembled.
- *
- * THIS SOFTWARE IS PROVIDED BY NORDIC SEMICONDUCTOR ASA "AS IS" AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL NORDIC SEMICONDUCTOR ASA OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
-/** @file
- *
- * @defgroup estc_adverts main.c
- * @{
- * @ingroup estc_templates
- * @brief ESTC Advertisments template app.
- *
- * This file contains a template for creating a new BLE application with GATT services. It has
- * the code necessary to advertise, get a connection, restart advertising on disconnect.
- */
-
  #include <stdbool.h>
  #include <stdint.h>
  #include <string.h>
@@ -415,16 +365,17 @@
  }
  
  
- /**@brief Function for initializing the Advertising functionality.
-  */
  static void advertising_init(void)
  {
      ret_code_t             err_code;
      ble_advertising_init_t init;
- 
      memset(&init, 0, sizeof(init));
  
-     init.advdata.name_type               = BLE_ADVDATA_FULL_NAME;
+     // Короткое и полное имя
+     static uint8_t short_name_data[] = "DAR";
+     static uint8_t full_name_data[] = "DARIA BUKCHAREVA"; 
+ 
+     init.advdata.name_type               = BLE_ADVDATA_NO_NAME;
      init.advdata.include_appearance      = true;
      init.advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
      init.advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
@@ -434,15 +385,33 @@
      init.config.ble_adv_fast_interval = APP_ADV_INTERVAL;
      init.config.ble_adv_fast_timeout  = APP_ADV_DURATION;
  
-     // TODO: Add more data to the advertisement data
-     // TODO: Add more data to the scan response data
+     ble_advdata_manuf_data_t short_name_manuf_data;
+     uint8_array_t short_name;
+     short_name_manuf_data.company_identifier = 0x0077;
+     short_name.p_data        = short_name_data;
+     short_name.size          = strlen((char*)short_name_data);
+     short_name_manuf_data.data = short_name;
+ 
+     ble_advdata_manuf_data_t full_name_manuf_data;
+     uint8_array_t full_name;
+     full_name_manuf_data.company_identifier = 0x0077;
+     full_name.p_data        = full_name_data;
+     full_name.size          = strlen((char*)full_name_data);
+     full_name_manuf_data.data = full_name;
+ 
+     init.advdata.p_manuf_specific_data = &short_name_manuf_data;
+ 
+     init.srdata.p_manuf_specific_data = &full_name_manuf_data;
  
      init.evt_handler = on_adv_evt;
  
      err_code = ble_advertising_init(&m_advertising, &init);
      APP_ERROR_CHECK(err_code);
  
+
      ble_advertising_conn_cfg_tag_set(&m_advertising, APP_BLE_CONN_CFG_TAG);
+ 
+     NRF_LOG_INFO("Advertising initialized with short name in ADV and full name in Scan Response");
  }
  
  
@@ -539,3 +508,4 @@
  /**
   * @}
   */
+ 
