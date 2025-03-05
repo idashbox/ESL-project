@@ -50,7 +50,9 @@
  
  #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
  
- 
+ static char short_name_data[] = "DAR";
+ static char full_name_data[] = "DARIA BUKCHAREVA"; 
+
  NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
  NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
  BLE_ADVERTISING_DEF(m_advertising);                                             /**< Advertising module instance. */
@@ -371,10 +373,6 @@
      ble_advertising_init_t init;
      memset(&init, 0, sizeof(init));
  
-     // Короткое и полное имя
-     static uint8_t short_name_data[] = "DAR";
-     static uint8_t full_name_data[] = "DARIA BUKCHAREVA"; 
- 
      init.advdata.name_type               = BLE_ADVDATA_NO_NAME;
      init.advdata.include_appearance      = true;
      init.advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
@@ -387,16 +385,16 @@
  
      ble_advdata_manuf_data_t short_name_manuf_data;
      uint8_array_t short_name;
-     short_name_manuf_data.company_identifier = 0x0077;
-     short_name.p_data        = short_name_data;
-     short_name.size          = strlen((char*)short_name_data);
+     short_name_manuf_data.company_identifier = 0x0070;
+     short_name.p_data        = (uint8_t *) short_name_data;
+     short_name.size          = sizeof(short_name_data)/sizeof(short_name_data[0]);
      short_name_manuf_data.data = short_name;
  
      ble_advdata_manuf_data_t full_name_manuf_data;
      uint8_array_t full_name;
-     full_name_manuf_data.company_identifier = 0x0077;
-     full_name.p_data        = full_name_data;
-     full_name.size          = strlen((char*)full_name_data);
+     full_name_manuf_data.company_identifier = 0x0070;
+     full_name.p_data        = (uint8_t *) full_name_data;
+     full_name.size          = sizeof(full_name_data)/sizeof(full_name_data[0]);
      full_name_manuf_data.data = full_name;
  
      init.advdata.p_manuf_specific_data = &short_name_manuf_data;

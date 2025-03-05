@@ -35,12 +35,12 @@ uint32_t estc_ble_service_init(ble_estc_service_t *p_service)
     char_uuid.type = p_service->uuid_type;
     char_uuid.uuid = CUSTOM_CHAR_UUID;
 
-    char_md.char_props.read = 1;
-    char_md.char_props.write = 1;
+    char_md.char_props.read = CHAR_PROP_READ;
+    char_md.char_props.write = CHAR_PROP_WRITE;
 
-    attr_md.read_perm = (ble_gap_conn_sec_mode_t){1, 1};
-    attr_md.write_perm = (ble_gap_conn_sec_mode_t){1, 1};
-    attr_md.vloc = BLE_GATTS_VLOC_STACK;
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
+    attr_md.vloc = BLE_GATTS_VLOC_USER;
 
     attr_char_value.p_uuid = &char_uuid;
     attr_char_value.p_attr_md = &attr_md;
@@ -55,3 +55,4 @@ uint32_t estc_ble_service_init(ble_estc_service_t *p_service)
     NRF_LOG_INFO("Custom BLE service initialized.");
     return NRF_SUCCESS;
 }
+
