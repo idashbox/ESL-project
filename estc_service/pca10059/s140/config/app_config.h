@@ -40,6 +40,7 @@
 #define NRF_LOG_BACKEND_UART_TX_PIN 6
 #endif
 
+
 // <o> NRF_LOG_BACKEND_UART_BAUDRATE  - Default Baudrate
  
 // <323584=> 1200 baud 

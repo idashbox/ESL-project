@@ -65,6 +65,50 @@ static ble_uuid_t m_adv_uuids[] =                                               
 
 ble_estc_service_t m_estc_service; /**< ESTC example BLE service */
 
+APP_TIMER_DEF(m_notify_timer);
+APP_TIMER_DEF(m_indicate_timer);
+
+void notify_timer_handler(void *p_context)
+{
+    ble_estc_service_t *p_service = (ble_estc_service_t *) p_context;
+    static uint32_t notify_value = 0;
+    notify_value++;
+
+    ble_gatts_hvx_params_t hvx_params = {0};
+    hvx_params.handle = p_service->notify_char_handles.value_handle;
+    hvx_params.type = BLE_GATT_HVX_NOTIFICATION;
+    hvx_params.offset = 0;
+    uint16_t len = sizeof(notify_value);
+    hvx_params.p_len = &len;
+    hvx_params.p_data = (uint8_t *)&notify_value;
+
+    if (p_service->conn_handle != BLE_CONN_HANDLE_INVALID)
+    {
+        sd_ble_gatts_hvx(p_service->conn_handle, &hvx_params);
+    }
+}
+
+void indicate_timer_handler(void *p_context)
+{
+    ble_estc_service_t *p_service = (ble_estc_service_t *) p_context;
+    static uint32_t indicate_value = 100;
+    indicate_value++;
+
+    ble_gatts_hvx_params_t hvx_params = {0};
+    hvx_params.handle = p_service->indicate_char_handles.value_handle;
+    hvx_params.type = BLE_GATT_HVX_INDICATION;
+    hvx_params.offset = 0;
+    uint16_t len = sizeof(indicate_value);
+    hvx_params.p_len = &len;
+    hvx_params.p_data = (uint8_t *)&indicate_value;
+
+    if (p_service->conn_handle != BLE_CONN_HANDLE_INVALID)
+    {
+        sd_ble_gatts_hvx(p_service->conn_handle, &hvx_params);
+    }
+}
+
+
 static void advertising_start(void);
 
 
@@ -93,6 +137,13 @@ static void timers_init(void)
     // Initialize timer module.
     ret_code_t err_code = app_timer_init();
     APP_ERROR_CHECK(err_code);
+
+    app_timer_create(&m_notify_timer, APP_TIMER_MODE_REPEATED, notify_timer_handler);
+    app_timer_create(&m_indicate_timer, APP_TIMER_MODE_REPEATED, indicate_timer_handler);
+
+    app_timer_start(m_notify_timer, APP_TIMER_TICKS(1000), &m_estc_service);
+    app_timer_start(m_indicate_timer, APP_TIMER_TICKS(2000), &m_estc_service);
+
 }
 
 
@@ -288,15 +339,19 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
 static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 {
     ret_code_t err_code = NRF_SUCCESS;
+    ble_estc_service_t *p_service = (ble_estc_service_t *) p_context;
 
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_DISCONNECTED:
+            p_service->conn_handle = BLE_CONN_HANDLE_INVALID;
+
             NRF_LOG_INFO("Disconnected (conn_handle: %d)", p_ble_evt->evt.gap_evt.conn_handle);
-            // LED indication will be changed when advertising starts.
             break;
 
         case BLE_GAP_EVT_CONNECTED:
+            p_service->conn_handle = p_ble_evt->evt.gap_evt.conn_handle; 
+
             NRF_LOG_INFO("Connected (conn_handle: %d)", p_ble_evt->evt.gap_evt.conn_handle);
 
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
