@@ -187,6 +187,14 @@
 #define NRF_BLE_GATT_MTU_EXCHANGE_INITIATION_ENABLED 1
 #endif
 
+#define NRF_NVMC_ENABLED 1
+#define BOOTLOADER_START_ADDR 0x7E000
+#define NRF_DFU_APP_DATA_AREA_SIZE 0x1000
+
+#define NRF_LOG_BACKEND_USB_ENABLED 1
+
+#define NRF_DRV_USBD_ENABLED 1
+
 // </e>
 
 // <e> NRF_BLE_QWR_ENABLED - nrf_ble_qwr - Queued writes support module (prepare/execute write)
@@ -2784,62 +2792,54 @@
 // <e> NRFX_PWM_ENABLED - nrfx_pwm - PWM peripheral driver
 //==========================================================
 #ifndef NRFX_PWM_ENABLED
-#define NRFX_PWM_ENABLED 0
+#define NRFX_PWM_ENABLED 1
 #endif
 // <q> NRFX_PWM0_ENABLED  - Enable PWM0 instance
- 
+#define CONFIG_NRFX_PWM y
+
 
 #ifndef NRFX_PWM0_ENABLED
-#define NRFX_PWM0_ENABLED 0
+#define NRFX_PWM0_ENABLED 1
 #endif
 
 // <q> NRFX_PWM1_ENABLED  - Enable PWM1 instance
  
 
 #ifndef NRFX_PWM1_ENABLED
-#define NRFX_PWM1_ENABLED 0
+#define NRFX_PWM1_ENABLED 1
 #endif
 
 // <q> NRFX_PWM2_ENABLED  - Enable PWM2 instance
  
 
 #ifndef NRFX_PWM2_ENABLED
-#define NRFX_PWM2_ENABLED 0
+#define NRFX_PWM2_ENABLED 1
 #endif
 
 // <q> NRFX_PWM3_ENABLED  - Enable PWM3 instance
  
 
 #ifndef NRFX_PWM3_ENABLED
-#define NRFX_PWM3_ENABLED 0
+#define NRFX_PWM3_ENABLED 1
 #endif
 
 // <o> NRFX_PWM_DEFAULT_CONFIG_OUT0_PIN - Out0 pin  <0-31> 
 
 
 #ifndef NRFX_PWM_DEFAULT_CONFIG_OUT0_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT0_PIN 31
+#define NRFX_PWM_DEFAULT_CONFIG_OUT0_PIN NRF_GPIO_PIN_MAP(0, 6) // LED 1
 #endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_OUT1_PIN - Out1 pin  <0-31> 
-
 
 #ifndef NRFX_PWM_DEFAULT_CONFIG_OUT1_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT1_PIN 31
+#define NRFX_PWM_DEFAULT_CONFIG_OUT1_PIN NRF_GPIO_PIN_MAP(0, 8) // LED 2 Red
 #endif
-
-// <o> NRFX_PWM_DEFAULT_CONFIG_OUT2_PIN - Out2 pin  <0-31> 
-
 
 #ifndef NRFX_PWM_DEFAULT_CONFIG_OUT2_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT2_PIN 31
+#define NRFX_PWM_DEFAULT_CONFIG_OUT2_PIN NRF_GPIO_PIN_MAP(1, 9) // LED 2 Green
 #endif
 
-// <o> NRFX_PWM_DEFAULT_CONFIG_OUT3_PIN - Out3 pin  <0-31> 
-
-
 #ifndef NRFX_PWM_DEFAULT_CONFIG_OUT3_PIN
-#define NRFX_PWM_DEFAULT_CONFIG_OUT3_PIN 31
+#define NRFX_PWM_DEFAULT_CONFIG_OUT3_PIN NRF_GPIO_PIN_MAP(0, 12) // LED 2 Blue
 #endif
 
 // <o> NRFX_PWM_DEFAULT_CONFIG_BASE_CLOCK  - Base clock
@@ -2890,6 +2890,7 @@
 #ifndef NRFX_PWM_DEFAULT_CONFIG_STEP_MODE
 #define NRFX_PWM_DEFAULT_CONFIG_STEP_MODE 0
 #endif
+
 
 // <o> NRFX_PWM_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
  
