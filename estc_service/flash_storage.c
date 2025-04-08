@@ -1,47 +1,110 @@
-#include "flash_storage.h"
-#include "nrf_nvmc.h"
-#include "nrf_log.h"
 #include <string.h>
+#include "app_error.h"
+#include "fds.h"
+#include "fds_internal_defs.h"
+#include "flash_storage.h"
 
-// Функция для сохранения состояния светодиода и его цвета
-void save_led_state_and_color(uint8_t led_state, uint32_t hue, uint32_t saturation, uint32_t brightness)
+led_data_t data = {
+    .color = (rgb_t) {0xdd, 0xaa, 0x00},
+    .led_state = 0x00
+};
+
+void display_storage_state(void)
 {
-    uint32_t color_data[4] = {led_state, hue, saturation, brightness};  // Состояние + 3 параметра цвета
-
-    nrf_nvmc_page_erase(FLASH_STORAGE_ADDR);
-
-    // Запись всех данных в память
-    nrf_nvmc_write_words(FLASH_STORAGE_ADDR, color_data, sizeof(color_data) / sizeof(uint32_t));
-
-    NRF_LOG_INFO("LED state and color saved: State: %d, H:%d S:%d B:%d", led_state, hue, saturation, brightness);
+    fds_stat_t stat;
+    fds_stat(&stat);
 }
 
-// Функция для загрузки состояния светодиода и его цвета
-void load_led_state_and_color(uint8_t *led_state, uint32_t *hue, uint32_t *saturation, uint32_t *brightness)
+void flash_storage_init(led_data_t *led_data)
 {
-    uint32_t color_data[4];
+    fds_record_desc_t record_desc;
+    fds_find_token_t record_token;
+    fds_flash_record_t flash_record;
 
-    // Чтение данных из памяти
-    memcpy(color_data, (void*)FLASH_STORAGE_ADDR, sizeof(color_data));
+    memset(&record_token, 0, sizeof(fds_find_token_t));
 
-    // Проверка валидности данных
-    if (color_data[1] <= 360 && color_data[2] <= 100 && color_data[3] <= 100)
+    if (fds_record_find(CUSTOM_LED_SAVES_FILE_ID, CUSTOM_LED_SAVES_RECORD_KEY, &record_desc, &record_token) == NRF_SUCCESS)
     {
-        *led_state = color_data[0];  // Состояние светодиода
-        *hue = color_data[1];        // Hue
-        *saturation = color_data[2]; // Saturation
-        *brightness = color_data[3]; // Brightness
+        if (fds_record_open(&record_desc, &flash_record) == NRF_SUCCESS)
+        {
+            memcpy(led_data, flash_record.p_data, sizeof(led_data_t));
+            fds_record_close(&record_desc);
+        }
+    }
 
-        NRF_LOG_INFO("Loaded LED state: %d, Color: H:%d S:%d B:%d", *led_state, *hue, *saturation, *brightness);
+    led_update(led_data);
+}
+
+void check_and_trigger_gc(void)
+{
+    fds_stat_t stat;
+
+    if (fds_stat(&stat) != NRF_SUCCESS)
+    {
+        return;
+    }
+
+    if (stat.freeable_words > CUSTOM_LED_SAVES_FDS_USAGE_LIMIT)
+    {
+        fds_gc();
+    }
+}
+
+void save_led_data(led_data_t *led_data)
+{
+    fds_record_desc_t record_desc;
+    fds_find_token_t record_token;
+    fds_record_t record;
+
+    ret_code_t ret_code;
+
+    memset(&record_token, 0, sizeof(fds_find_token_t));
+
+    record.file_id = CUSTOM_LED_SAVES_FILE_ID;
+    record.key = CUSTOM_LED_SAVES_RECORD_KEY;
+    record.data.p_data = (void *) &led_data;
+    record.data.length_words = sizeof(led_data_t) / 4;
+
+    if (fds_record_find(record.file_id, record.key, &record_desc, &record_token))
+    {
+        ret_code = fds_record_update(&record_desc, &record);
     }
     else
     {
-        // Если данные некорректны, устанавливаем значения по умолчанию
-        *led_state = 0;              // Состояние по умолчанию (выключен)
-        *hue = 360 * 0.81;          // Значения по умолчанию для цвета
-        *saturation = 100;
-        *brightness = 100;
-
-        NRF_LOG_INFO("No valid color found, using defaults");
+        ret_code = fds_record_write(&record_desc, &record);
     }
+
+    if (ret_code != NRF_SUCCESS)
+    {
+        fds_gc();
+    }
+
+    display_storage_state();
+    check_and_trigger_gc();
+}
+
+void fds_events_handler(fds_evt_t const * p_evt)
+{
+    switch (p_evt->id)
+    {
+        case FDS_EVT_INIT:
+            flash_storage_init(&data);
+            break;
+
+        case FDS_EVT_GC:
+            display_storage_state();
+            break;
+
+        case FDS_EVT_DEL_FILE:
+            break;
+
+        default:
+            break;
+    }
+}
+
+void fds_init_and_register(void)
+{
+    fds_register(fds_events_handler);
+    fds_init();
 }

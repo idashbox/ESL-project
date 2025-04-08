@@ -1,84 +1,132 @@
 #include "estc_service.h"
-#include <string.h>
 #include "nrf_log.h"
-#include "ble_srv_common.h"
 #include "app_error.h"
+#include "app_timer.h"
+#include "led_controller.h"
 #include "flash_storage.h"
+#include <string.h>
 
-// Global variable to hold LED state and color data
-static uint32_t led_color = 0;  // RGB color as a 32-bit value (e.g., 0xFF0000 for red)
-static uint8_t led_state = 0;   // 0 = off, 1 = on
+extern ble_estc_service_t m_estc_service;
+APP_TIMER_DEF(m_notify_timer);
 
-// Initialize the custom BLE service
-uint32_t estc_ble_service_init(ble_estc_service_t *p_service)
-{
-    if (p_service == NULL)
-    {
-        return NRF_ERROR_NULL;
-    }
+static const ble_uuid128_t base_uuid = { CUSTOM_SERVICE_UUID_BASE };
+static led_data_t led_data = { .color = {0xdd, 0xaa, 0x00}, .led_state = 1 };
 
-    ret_code_t err_code;
-    ble_uuid_t service_uuid;
-    ble_uuid128_t base_uuid = {CUSTOM_SERVICE_UUID_BASE};
+static ret_code_t add_char(ble_estc_service_t *service,
+                           uint16_t uuid,
+                           ble_gatts_char_handles_t *handles,
+                           bool read,
+                           bool write,
+                           bool notify,
+                           uint16_t len) {
+    ble_uuid_t char_uuid = { .uuid = uuid, .type = service->uuid_type };
+    ble_gatts_char_md_t char_md = {0};
+    ble_gatts_attr_md_t attr_md = {0};
+    ble_gatts_attr_t attr_value = {0};
 
-    err_code = sd_ble_uuid_vs_add(&base_uuid, &p_service->uuid_type);
-    APP_ERROR_CHECK(err_code);
+    char_md.char_props.read   = read;
+    char_md.char_props.write  = write;
+    char_md.char_props.notify = notify;
 
-    service_uuid.type = p_service->uuid_type;
-    service_uuid.uuid = CUSTOM_SERVICE_UUID;
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
+    attr_md.vloc = BLE_GATTS_VLOC_STACK;
 
-    err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &service_uuid, &p_service->service_handle);
-    APP_ERROR_CHECK(err_code);
+    attr_value.p_uuid = &char_uuid;
+    attr_value.p_attr_md = &attr_md;
+    attr_value.init_len = len;
+    attr_value.max_len = len;
+    attr_value.p_value = NULL;
 
-    // Add LED state characteristic
-    ble_gatts_char_md_t led_state_char_md = {0};
-    ble_gatts_attr_md_t led_state_attr_md = {0};
-    ble_gatts_attr_t led_state_attr_char_value = {0};
-    ble_uuid_t led_state_char_uuid;
+    return sd_ble_gatts_characteristic_add(service->service_handle, &char_md, &attr_value, handles);
+}
 
-    led_state_char_uuid.type = p_service->uuid_type;
-    led_state_char_uuid.uuid = CUSTOM_CHAR_LED_STATE_UUID;
+static void notify_handler(void *ctx) {
+    char buf[LED_NOTIFY_LEN];
+    snprintf(buf, sizeof(buf), "RGB(%02X%02X%02X), LED%3d",
+             led_data.color.r, led_data.color.g, led_data.color.b, led_data.led_state);
 
-    led_state_char_md.char_props.read = CHAR_PROP_READ;
-    led_state_char_md.char_props.write = CHAR_PROP_WRITE;
+    uint16_t len = strlen(buf);
+    ble_gatts_hvx_params_t params = {
+        .handle = m_estc_service.notify_handles.value_handle,
+        .type = BLE_GATT_HVX_NOTIFICATION,
+        .offset = 0,
+        .p_len = &len,
+        .p_data = (uint8_t *) buf
+    };
+    sd_ble_gatts_hvx(m_estc_service.conn_handle, &params);
+    NRF_LOG_INFO("LED Notify");
+}
 
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&led_state_attr_md.read_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&led_state_attr_md.write_perm);
-    led_state_attr_md.vloc = BLE_GATTS_VLOC_USER;
+ret_code_t ble_service_init(ble_estc_service_t *service, void *ctx) {
+    ret_code_t err;
 
-    led_state_attr_char_value.p_uuid = &led_state_char_uuid;
-    led_state_attr_char_value.p_attr_md = &led_state_attr_md;
-    led_state_attr_char_value.init_len = sizeof(uint8_t);
-    led_state_attr_char_value.p_value = (uint8_t *)&led_state;
+    err = sd_ble_uuid_vs_add(&base_uuid, &service->uuid_type);
+    APP_ERROR_CHECK(err);
 
-    err_code = sd_ble_gatts_characteristic_add(p_service->service_handle, &led_state_char_md, &led_state_attr_char_value, &p_service->led_state_char_handles);
-    APP_ERROR_CHECK(err_code);
+    ble_uuid_t uuid = { .uuid = CUSTOM_SERVICE_UUID, .type = service->uuid_type };
+    err = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &uuid, &service->service_handle);
+    APP_ERROR_CHECK(err);
 
-    // Add LED color characteristic
-    ble_gatts_char_md_t led_color_char_md = {0};
-    ble_gatts_attr_md_t led_color_attr_md = {0};
-    ble_gatts_attr_t led_color_attr_char_value = {0};
-    ble_uuid_t led_color_char_uuid;
+    err = add_char(service, LED_COLOR_CHAR_UUID, &service->color_handles, true, true, false, LED_COLOR_LEN);
+    APP_ERROR_CHECK(err);
+    err = add_char(service, LED_STATE_CHAR_UUID, &service->state_handles, true, true, false, LED_STATE_LEN);
+    APP_ERROR_CHECK(err);
+    err = add_char(service, LED_NOTIFY_CHAR_UUID, &service->notify_handles, false, false, true, LED_NOTIFY_LEN);
+    APP_ERROR_CHECK(err);
 
-    led_color_char_uuid.type = p_service->uuid_type;
-    led_color_char_uuid.uuid = CUSTOM_CHAR_LED_COLOR_UUID;
-
-    led_color_char_md.char_props.read = CHAR_PROP_READ;
-    led_color_char_md.char_props.write = CHAR_PROP_WRITE;
-
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&led_color_attr_md.read_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&led_color_attr_md.write_perm);
-    led_color_attr_md.vloc = BLE_GATTS_VLOC_USER;
-
-    led_color_attr_char_value.p_uuid = &led_color_char_uuid;
-    led_color_attr_char_value.p_attr_md = &led_color_attr_md;
-    led_color_attr_char_value.init_len = sizeof(uint32_t); // RGB value
-    led_color_attr_char_value.p_value = (uint8_t *)&led_color;
-
-    err_code = sd_ble_gatts_characteristic_add(p_service->service_handle, &led_color_char_md, &led_color_attr_char_value, &p_service->led_color_char_handles);
-    APP_ERROR_CHECK(err_code);
-
-    NRF_LOG_INFO("Custom BLE service initialized with LED state and color characteristics.");
+    app_timer_create(&m_notify_timer, APP_TIMER_MODE_REPEATED, notify_handler);
 
     return NRF_SUCCESS;
+}
+
+static void handle_color_write(const uint8_t *data, uint16_t len, bool connected) {
+    if (len != LED_COLOR_LEN) return;
+    memcpy(&led_data.color, data, LED_COLOR_LEN);
+    led_update(&led_data);
+
+    if (connected) {
+        ble_gatts_value_t val = { .len = LED_COLOR_LEN, .offset = 0, .p_value = (uint8_t *)&led_data.color };
+        sd_ble_gatts_value_set(m_estc_service.conn_handle, m_estc_service.color_handles.value_handle, &val);
+    } else {
+        save_led_data(&led_data);
+        app_timer_start(m_notify_timer, APP_TIMER_TICKS(1000), NULL);
+    }
+}
+
+static void handle_state_write(const uint8_t *data, uint16_t len, bool connected) {
+    if (len != LED_STATE_LEN) return;
+    led_data.led_state = *data;
+    led_update(&led_data);
+
+    if (connected) {
+        ble_gatts_value_t val = { .len = LED_STATE_LEN, .offset = 0, .p_value = (uint8_t *)&led_data.led_state };
+        sd_ble_gatts_value_set(m_estc_service.conn_handle, m_estc_service.state_handles.value_handle, &val);
+    } else {
+        save_led_data(&led_data);
+        app_timer_start(m_notify_timer, APP_TIMER_TICKS(1000), NULL);
+    }
+}
+
+void ble_service_event(const ble_evt_t *ble_evt, void *ctx) {
+    switch (ble_evt->header.evt_id) {
+        case BLE_GATTS_EVT_WRITE: {
+            const ble_gatts_evt_write_t *w = &ble_evt->evt.gatts_evt.params.write;
+
+            if (w->handle == m_estc_service.color_handles.value_handle)
+                handle_color_write(w->data, w->len, false);
+
+            if (w->handle == m_estc_service.state_handles.value_handle)
+                handle_state_write(w->data, w->len, false);
+            break;
+        }
+
+        case BLE_GAP_EVT_CONNECTED:
+            handle_color_write((uint8_t *)&led_data.color, LED_COLOR_LEN, true);
+            handle_state_write((uint8_t *)&led_data.led_state, LED_STATE_LEN, true);
+            break;
+
+        default:
+            break;
+    }
 }

@@ -1,10 +1,7 @@
 #include "pwm_handler.h"
 #include "nrfx_pwm.h"
 
-static nrfx_pwm_t pwm = {
-    .p_registers = NRF_PWM0,
-    .drv_inst_idx = 0
-};
+static nrfx_pwm_t pwm = NRFX_PWM_INSTANCE(0);
 static nrf_pwm_values_individual_t pwm_values;
 static nrf_pwm_sequence_t const pwm_seq =
 {
