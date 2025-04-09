@@ -43,34 +43,26 @@ static ret_code_t add_char(ble_estc_service_t *service,
 }
 
 static void notify_color_handler() {
-    uint8_t buf[3];
-    buf[0] = led_data.color.r;
-    buf[1] = led_data.color.g;
-    buf[2] = led_data.color.b;
-
-    uint16_t len = sizeof(buf);
+    uint16_t len = sizeof(led_data.color);
     ble_gatts_hvx_params_t params = {
         .handle = m_estc_service.color_handles.value_handle,
         .type = BLE_GATT_HVX_NOTIFICATION,
         .offset = 0,
         .p_len = &len,
-        .p_data = (uint8_t *) buf
+        .p_data = (uint8_t *) &led_data.color
     };
     sd_ble_gatts_hvx(m_estc_service.conn_handle, &params);
     NRF_LOG_INFO("Color Notify");
 }
 
 static void notify_led_state_handler() {
-    char buf[LED_STATE_LEN];
-    snprintf(buf, sizeof(buf), "%3d",led_data.led_state);
-
-    uint16_t len = strlen(buf);
+    uint16_t len = sizeof(uint8_t);
     ble_gatts_hvx_params_t params = {
         .handle = m_estc_service.state_handles.value_handle,
         .type = BLE_GATT_HVX_NOTIFICATION,
         .offset = 0,
         .p_len = &len,
-        .p_data = (uint8_t *) buf
+        .p_data = (uint8_t *) &led_data.led_state
     };
     sd_ble_gatts_hvx(m_estc_service.conn_handle, &params);
     NRF_LOG_INFO("LED state Notify");
