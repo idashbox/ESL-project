@@ -10,11 +10,9 @@
 #define CUSTOM_SERVICE_UUID        0x1400
 #define LED_COLOR_CHAR_UUID        0x1401
 #define LED_STATE_CHAR_UUID        0x1402
-#define LED_NOTIFY_CHAR_UUID       0x1403
 
 #define LED_COLOR_LEN   3
 #define LED_STATE_LEN   1
-#define LED_NOTIFY_LEN  16
 
 typedef struct {
     uint16_t service_handle;
@@ -22,10 +20,9 @@ typedef struct {
     uint8_t uuid_type;
     ble_gatts_char_handles_t color_handles;
     ble_gatts_char_handles_t state_handles;
-    ble_gatts_char_handles_t notify_handles;
 } ble_estc_service_t;
 
-ret_code_t ble_service_init(ble_estc_service_t *service, void *ctx);
-void ble_service_event(const ble_evt_t *ble_evt, void *ctx);
+ret_code_t ble_service_init(ble_estc_service_t *service);
+void ble_service_event(const ble_evt_t *ble_evt);
 
 #endif /* ESTC_SERVICE_H__ */

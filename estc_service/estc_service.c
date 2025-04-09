@@ -7,7 +7,8 @@
 #include <string.h>
 
 extern ble_estc_service_t m_estc_service;
-APP_TIMER_DEF(m_notify_timer);
+APP_TIMER_DEF(m_notify_color_timer);
+APP_TIMER_DEF(m_notify_led_state_timer);
 
 static const ble_uuid128_t base_uuid = { CUSTOM_SERVICE_UUID_BASE };
 static led_data_t led_data = { .color = {0xdd, 0xaa, 0x00}, .led_state = 1 };
@@ -41,24 +42,41 @@ static ret_code_t add_char(ble_estc_service_t *service,
     return sd_ble_gatts_characteristic_add(service->service_handle, &char_md, &attr_value, handles);
 }
 
-static void notify_handler(void *ctx) {
-    char buf[LED_NOTIFY_LEN];
-    snprintf(buf, sizeof(buf), "RGB(%02X%02X%02X), LED%3d",
-             led_data.color.r, led_data.color.g, led_data.color.b, led_data.led_state);
+static void notify_color_handler() {
+    uint8_t buf[3];
+    buf[0] = led_data.color.r;
+    buf[1] = led_data.color.g;
+    buf[2] = led_data.color.b;
 
-    uint16_t len = strlen(buf);
+    uint16_t len = sizeof(buf);
     ble_gatts_hvx_params_t params = {
-        .handle = m_estc_service.notify_handles.value_handle,
+        .handle = m_estc_service.color_handles.value_handle,
         .type = BLE_GATT_HVX_NOTIFICATION,
         .offset = 0,
         .p_len = &len,
         .p_data = (uint8_t *) buf
     };
     sd_ble_gatts_hvx(m_estc_service.conn_handle, &params);
-    NRF_LOG_INFO("LED Notify");
+    NRF_LOG_INFO("Color Notify");
 }
 
-ret_code_t ble_service_init(ble_estc_service_t *service, void *ctx) {
+static void notify_led_state_handler() {
+    char buf[LED_STATE_LEN];
+    snprintf(buf, sizeof(buf), "%3d",led_data.led_state);
+
+    uint16_t len = strlen(buf);
+    ble_gatts_hvx_params_t params = {
+        .handle = m_estc_service.state_handles.value_handle,
+        .type = BLE_GATT_HVX_NOTIFICATION,
+        .offset = 0,
+        .p_len = &len,
+        .p_data = (uint8_t *) buf
+    };
+    sd_ble_gatts_hvx(m_estc_service.conn_handle, &params);
+    NRF_LOG_INFO("LED state Notify");
+}
+
+ret_code_t ble_service_init(ble_estc_service_t *service) {
     ret_code_t err;
 
     err = sd_ble_uuid_vs_add(&base_uuid, &service->uuid_type);
@@ -68,14 +86,13 @@ ret_code_t ble_service_init(ble_estc_service_t *service, void *ctx) {
     err = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &uuid, &service->service_handle);
     APP_ERROR_CHECK(err);
 
-    err = add_char(service, LED_COLOR_CHAR_UUID, &service->color_handles, true, true, false, LED_COLOR_LEN);
+    err = add_char(service, LED_COLOR_CHAR_UUID, &service->color_handles, true, true, true, LED_COLOR_LEN);
     APP_ERROR_CHECK(err);
-    err = add_char(service, LED_STATE_CHAR_UUID, &service->state_handles, true, true, false, LED_STATE_LEN);
-    APP_ERROR_CHECK(err);
-    err = add_char(service, LED_NOTIFY_CHAR_UUID, &service->notify_handles, false, false, true, LED_NOTIFY_LEN);
+    err = add_char(service, LED_STATE_CHAR_UUID, &service->state_handles, true, true, true, LED_STATE_LEN);
     APP_ERROR_CHECK(err);
 
-    app_timer_create(&m_notify_timer, APP_TIMER_MODE_REPEATED, notify_handler);
+    app_timer_create(&m_notify_color_timer, APP_TIMER_MODE_REPEATED, notify_color_handler);
+    app_timer_create(&m_notify_led_state_timer, APP_TIMER_MODE_REPEATED, notify_led_state_handler);
 
     return NRF_SUCCESS;
 }
@@ -90,7 +107,7 @@ static void handle_color_write(const uint8_t *data, uint16_t len, bool connected
         sd_ble_gatts_value_set(m_estc_service.conn_handle, m_estc_service.color_handles.value_handle, &val);
     } else {
         save_led_data(&led_data);
-        app_timer_start(m_notify_timer, APP_TIMER_TICKS(1000), NULL);
+        app_timer_start(m_notify_color_timer, APP_TIMER_TICKS(1000), &m_estc_service);
     }
 }
 
@@ -104,11 +121,11 @@ static void handle_state_write(const uint8_t *data, uint16_t len, bool connected
         sd_ble_gatts_value_set(m_estc_service.conn_handle, m_estc_service.state_handles.value_handle, &val);
     } else {
         save_led_data(&led_data);
-        app_timer_start(m_notify_timer, APP_TIMER_TICKS(1000), NULL);
+        app_timer_start(m_notify_led_state_timer, APP_TIMER_TICKS(1000), &m_estc_service);
     }
 }
 
-void ble_service_event(const ble_evt_t *ble_evt, void *ctx) {
+void ble_service_event(const ble_evt_t *ble_evt) {
     switch (ble_evt->header.evt_id) {
         case BLE_GATTS_EVT_WRITE: {
             const ble_gatts_evt_write_t *w = &ble_evt->evt.gatts_evt.params.write;

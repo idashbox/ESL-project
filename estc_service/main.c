@@ -162,7 +162,7 @@ static void services_init(void)
     err_code = nrf_ble_qwr_init(&m_qwr, &qwr_init);
     APP_ERROR_CHECK(err_code);
 
-    err_code = ble_service_init(&m_estc_service, NULL);
+    err_code = ble_service_init(&m_estc_service);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -309,7 +309,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             break;
     }
 
-    ble_service_event(p_ble_evt, p_context);
+    ble_service_event(p_ble_evt);
 }
 
 /**@brief Function for initializing the BLE stack.
